@@ -9,8 +9,12 @@ def error(msg):
 def get_ftype(fpath):
     return path.basename(fpath).split(".")[-1]
 
+# returns the value of the column 'colname' in the current row
+global_row = ""
+def get(colname): # colname must be in important_cols.
+    return global_row[cols[colname]]
+
 if __name__ == "__main__":
-    
     #################### 
     # input validation #
     #################### 
@@ -18,7 +22,6 @@ if __name__ == "__main__":
         error("no file to convert provided.")
 
     inpath = sys.argv[1] 
-
 
     if not "." in path.basename(inpath):
         error("the file you provided has no file extension. Must be a .csv file.")
@@ -36,31 +39,43 @@ if __name__ == "__main__":
     # parsing data #
     ################ 
     reader = csv.reader(f)
-    email_courses = {}
-    email_names = {}
+    email_courses = {} # courses corresponding to each email
+    email_names = {} # name corresponding with each email
     first_row = True
+
+    important_cols = ["course_name", "email", "firstname", "lastname"]
+    cols = {}
+
+    c_n = 0
     for row in reader:
-        if first_row: # skip headers
+        global_row = row # for get()
+        if first_row: # assign col indicies
+            for i, v in enumerate(row):
+                if v in important_cols: cols[v]=i
+            if len(cols)!=len(important_cols): 
+                error(f"the following column(s) not found: {[c for c in important_cols if c not in cols]}. Update file to contain this column name.")
             first_row=False
             continue
-        
+        c_n+=1
         row = [row[0].replace("ï»¿", "")] + row[1:] # fix weird UTF-8 encoding thing
         row = row[0:-1] + [row[-1].replace("\n", "")]
-        if len(row)!=6:
-            error(f"file of unexpected format. this row has {len(row)} cols when it should have 6.\n{row}")
+       
         # parse course
-        if row[3] in email_courses:
-            email_courses[row[3]] += f"{row[1]}\n"
-        else:
-            email_courses[row[3]] = f"{row[1]}\n"
+        if not get("email") in email_courses: # init dict value
+            email_courses[get("email")] = ""
+
+        email_courses[get("email")] += f"{get('course_name')}\n"
+        
         # parse name
-        if not row[3] in email_names:
-            email_names[row[3]]=[row[4], row[5]]
+        if not get("email") in email_names:
+            email_names[get("email")]=[get("firstname"), get("lastname")]
     
     f.close()
-    output = [["email", "courses", "first_name", "surname"]] # headers
+    assert len(email_courses)==len(email_names) # invarient
+    output = [["email", "courses", "firstname", "lastname"]] # headers
     for e, cs in email_courses.items():
-        output.append([e, cs[:-1], email_names[e][0], email_names[e][1]]) # remove trailing newline from courses
+        name = email_names[e] # avoid double dict lookup
+        output.append([e, cs[:-1], name[0], name[1]]) # removes trailing newline from final course in courses
 
     ################ 
     # writing data #
@@ -76,4 +91,4 @@ if __name__ == "__main__":
     csv.writer(f).writerows(output)
     f.close()
 
-    print("Finished!")
+    print(f"Finished! Created rows for {len(email_courses)} people and {c_n} courses.")
