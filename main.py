@@ -16,6 +16,36 @@ def get_ftype(fpath):
 def get_inpaths(dpath):
     return  [path.join(dpath, fname) for fname in listdir(dpath) if fname[-4:]==".csv" and not match("reformatted_", fname)]
 
+def add_chunks(current, e, cs, name, chunk_size):
+    # https://chatgpt.com/c/85fa7ccd-3249-4927-a1da-bb2fae16fb56
+    def split_into_chunks(input_string, chunk_size):
+        lines = input_string.split('\n')
+        chunks = []
+        current_chunk = ""
+
+        for line in lines:
+            # Check if adding the current line to the current chunk would exceed chunk_size
+            if len(current_chunk) + len(line) + 1 > chunk_size:  # +1 for the '\n'
+                chunks.append(current_chunk)
+                current_chunk = line
+            else:
+                if current_chunk:
+                    current_chunk += '\n' + line
+                else:
+                    current_chunk = line
+
+        # Don't forget to add the last chunk if it's not empty
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks
+    
+    assert len(cs)>chunk_size
+    print(f"Split {e} into {1+int(len(cs)/chunk_size)} rows.")
+    for chunk in split_into_chunks(cs, chunk_size):
+        current.append([e, chunk[:-1], name[0], name[1]])
+    return current
+    
 
 
 ###########
@@ -55,7 +85,8 @@ def process_inpath(inpath):
         if not get("email") in email_courses: # init dict value
             email_courses[get("email")] = ""
         email_courses[get("email")] += f"{get('course_name')}\n"
-        
+    
+
         # parse name
         if not get("email") in email_names:
             email_names[get("email")]=[get("firstname"), get("lastname")]
@@ -65,7 +96,11 @@ def process_inpath(inpath):
     output = [["email", "courses", "firstname", "lastname"]] # headers
     for e, cs in email_courses.items():
         name = email_names[e] # avoid double dict lookup
-        output.append([e, cs[:-1], name[0], name[1]]) # removes trailing newline from final course in courses
+        chunk_size = 32700
+        if len(cs)>chunk_size:
+            output = add_chunks(output, e, cs, name, chunk_size)
+        else:
+            output.append([e, cs[:-1], name[0], name[1]]) # removes trailing newline from final course in courses
     return output
 
 
