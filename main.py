@@ -17,7 +17,7 @@ def get_inpaths(dpath):
     return  [path.join(dpath, fname) for fname in listdir(dpath) if fname[-4:]==".csv" and not match("reformatted_", fname)]
 
 def add_chunks(current, e, cs, name, chunk_size):
-    # https://chatgpt.com/c/85fa7ccd-3249-4927-a1da-bb2fae16fb56
+    # https://chatgpt.com/share/69c0b0c7-d6c2-496c-8e5a-c3b500c0f025
     def split_into_chunks(input_string, chunk_size):
         lines = input_string.split('\n')
         chunks = []
