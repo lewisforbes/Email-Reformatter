@@ -1,6 +1,7 @@
 import sys
-from os import path
+from os import path, listdir
 import csv
+from re import match
 
 def error(msg):
     print(f"Error: {msg}")
@@ -19,7 +20,9 @@ if __name__ == "__main__":
     # input validation #
     #################### 
     if len(sys.argv)<2:
-        error("no file to convert provided.")
+        csvs = [fname for fname in listdir() if fname[-4:]==".csv" and not match("reformatted_", fname)]
+        suffix = "" if len(csvs)==0 else f" Did you mean to run: \n>> python {sys.argv[0]} {csvs[0]}"
+        error("no file to convert provided."+suffix)
 
     inpath = sys.argv[1] 
 
