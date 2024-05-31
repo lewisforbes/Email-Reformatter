@@ -1,5 +1,5 @@
 import sys
-from os import path, listdir
+from os import path, listdir, mkdir
 import csv
 from re import match
 
@@ -51,7 +51,7 @@ def add_chunks(current, e, cs, name, chunk_size):
 ###########
 # PROGRAM #
 ###########
-def process_inpath(inpath):
+def process_inpath(inpath, cid=False):
     if not "." in path.basename(inpath) or not get_ftype(inpath)=="csv":
         error("the file you provided has no file extension or is not a csv file.")
 
@@ -65,6 +65,8 @@ def process_inpath(inpath):
     email_names = {} # name corresponding with each email
     first_row = True
     important_cols = ["course_name", "email", "firstname", "lastname"]
+    if cid: important_cols.append("course_id")
+
     cols = {}
     # returns the value of the column 'colname' in the current row .colname must be in important_cols.
     def get(colname): return row[cols[colname]]
@@ -82,9 +84,10 @@ def process_inpath(inpath):
         row = row[0:-1] + [row[-1].replace("\n", "")]
     
         # parse course
+        formatted_cid = f" [{get('course_id')}]" if cid else ""
         if not get("email") in email_courses: # init dict value
             email_courses[get("email")] = ""
-        email_courses[get("email")] += f"{get('course_name')}\n"
+        email_courses[get("email")] += f"{get('course_name')}{formatted_cid}\n"
     
 
         # parse name
@@ -115,13 +118,17 @@ if __name__ == "__main__":
 
     inpaths = get_inpaths(sys.argv[1]) if path.isdir(sys.argv[1]) else [sys.argv[1]]    
     for inpath in inpaths:
-        output = process_inpath(inpath)
-        outpath = f"reformatted_{path.basename(inpath)}"    
-        try:
-            f = open(outpath, "w", newline='', encoding='utf-8')
-            csv.writer(f).writerows(output)
-            f.close()
-        except PermissionError:
-            error(f"unable to write output. Close {outpath}!")
+        for cid in [False, True]:
+            output = process_inpath(inpath, cid)
+            cc = "CC_" if cid else ""
+            outpath = f"{cc}reformatted_{path.basename(inpath)}"    
+            try:
+                if not path.exists("output"):
+                    mkdir("output")
+                f = open(path.join("output", outpath), "w", newline='', encoding='utf-8')
+                csv.writer(f).writerows(output)
+                f.close()
+            except PermissionError:
+                error(f"unable to write output. Close {outpath}!")
 
     print(f"Finished - processed {len(inpaths)} file{'' if len(inpaths)==1 else 's'}.")
