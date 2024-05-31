@@ -6,4 +6,4 @@
 5. Output will be in file `reformatted_your_file_name.csv`.
 
 ## Demo
-See [test_email.csv](/test_email.csv) for input and [reformatted_test_email.csv](/reformatted_test_email.csv) for output.
+See [test_email.csv](/test_email.csv) for input and [reformatted_test_email.csv](/output/reformatted_test_email.csv) for output.
