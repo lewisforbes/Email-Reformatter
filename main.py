@@ -14,7 +14,7 @@ def get_ftype(fpath):
     return path.basename(fpath).split(".")[-1]
 
 def get_inpaths(dpath):
-    return  [path.join(dpath, fname) for fname in listdir(dpath) if fname[-4:]==".csv" and not match("reformatted_", fname)]
+    return  [path.join(dpath, fname) for fname in listdir(dpath) if fname.endswith(".csv") and not match("reformatted_", fname)]
 
 def add_chunks(current, e, cs, name, chunk_size):
     # https://chatgpt.com/share/69c0b0c7-d6c2-496c-8e5a-c3b500c0f025
@@ -52,7 +52,7 @@ def add_chunks(current, e, cs, name, chunk_size):
 # PROGRAM #
 ###########
 def process_inpath(inpath, cid=False):
-    if not "." in path.basename(inpath) or not get_ftype(inpath)=="csv":
+    if "." not in path.basename(inpath) or get_ftype(inpath)!="csv":
         error("the file you provided has no file extension or is not a csv file.")
 
     try:
@@ -72,7 +72,6 @@ def process_inpath(inpath, cid=False):
     def get(colname): return row[cols[colname]]
 
     for row in reader:
-        # print(row)
         if first_row: # assign col indicies
             for i, v in enumerate(row):
                 if v in important_cols: cols[v]=i
@@ -85,25 +84,27 @@ def process_inpath(inpath, cid=False):
     
         # parse course
         formatted_cid = f" [{get('course_id')}]" if cid else ""
-        if not get("email") in email_courses: # init dict value
-            email_courses[get("email")] = ""
-        email_courses[get("email")] += f"{get('course_name')}{formatted_cid}\n"
+        if get("email") not in email_courses: # init dict value
+            email_courses[get("email")] = []
+        email_courses[get("email")].append(f"{get('course_name')}{formatted_cid}")
     
 
         # parse name
-        if not get("email") in email_names:
+        if get("email") not in email_names:
             email_names[get("email")]=[get("firstname"), get("lastname")]
     
     f.close()
     assert len(email_courses)==len(email_names) # invarient
     output = [["email", "courses", "firstname", "lastname"]] # headers
-    for e, cs in email_courses.items():
+    for e, cs_arr in email_courses.items():
         name = email_names[e] # avoid double dict lookup
         chunk_size = 32700
-        if len(cs)>chunk_size:
-            output = add_chunks(output, e, cs, name, chunk_size)
+        cs_str = ""
+        for cs in sorted(cs_arr): cs_str += cs + "\n"
+        if len(cs_str)>chunk_size:
+            output = add_chunks(output, e, cs_str, name, chunk_size)
         else:
-            output.append([e, cs[:-1], name[0], name[1]]) # removes trailing newline from final course in courses
+            output.append([e, cs_str[:-1], name[0], name[1]]) # removes trailing newline from final course in courses
     return output
 
 
