@@ -74,7 +74,15 @@ def process_inpath(inpath, cid=False):
     for row in reader:
         if first_row: # assign col indicies
             for i, v in enumerate(row):
-                if v in important_cols: cols[v]=i
+                if i==0: # deal with mystery invisible characters at front of file sometimes.
+                    for c in important_cols:
+                        if c in v:
+                            cols[c]=i
+                            break
+                else:
+                    if v in important_cols: 
+                        cols[v]=i
+                        
             if len(cols)!=len(important_cols): 
                 error(f"the following column(s) not found: {[c for c in important_cols if c not in cols]}. Update file to contain this column name.")
             first_row=False
